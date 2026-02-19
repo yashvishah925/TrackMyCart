@@ -6,7 +6,6 @@ import 'splash_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // This is the line that connects your app to the cloud!
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -21,7 +20,7 @@ class GroceryStoreApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Smart Shopper',
+      title: 'TrackMyCart',
       theme: ThemeData(
         fontFamily: 'Work Sans',
         useMaterial3: true,
@@ -34,6 +33,7 @@ class GroceryStoreApp extends StatelessWidget {
           ),
         );
       },
+      // Now it always starts here. The Splash Screen will decide where to go next.
       home: const SplashScreen(),
     );
   }

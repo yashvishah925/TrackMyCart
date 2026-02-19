@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import 'dashboard_screen.dart';
 import 'budget_setup_screen.dart';
 import 'welcome_screen.dart';
-import 'budget_logic.dart'; // IMPORTED: The Global Brain
+import 'budget_logic.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -17,12 +17,16 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final User? user = FirebaseAuth.instance.currentUser;
 
-  // --- FIX #1: MONTH SYNC LOGIC ---
-  // Connects to the Global Bookmark month
   String get currentMonthKey => BudgetLogic.monthKey;
 
+  // --- UPDATED LOGIC: AUTH PERSISTENCE EXIT ---
   void _handleLogout() async {
+    // This tells Firebase to clear the saved session on the phone
     await FirebaseAuth.instance.signOut();
+
+    // Because we used a StreamBuilder in main.dart, the app will
+    // automatically see this logout and switch to WelcomeScreen.
+    // We use pushAndRemoveUntil to clear the navigation history.
     if (mounted) {
       Navigator.pushAndRemoveUntil(
         context,
@@ -32,13 +36,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // --- FIX #2: TARGETED RESET LOGIC ---
-  // Now only wipes data for the SPECIFIC month selected in Budget Setup
   Future<void> _resetFirebaseData() async {
     if (user == null) return;
     final batch = FirebaseFirestore.instance.batch();
 
-    // 1. Clear Expenses for the BOOKMARKED month
     var expenseDocs = await FirebaseFirestore.instance
         .collection('users').doc(user!.uid)
         .collection('budgets').doc(currentMonthKey)
@@ -48,7 +49,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       batch.delete(doc.reference);
     }
 
-    // 2. Clear Shopping List for the BOOKMARKED month
     var listDocs = await FirebaseFirestore.instance
         .collection('users').doc(user!.uid)
         .collection('budgets').doc(currentMonthKey)
@@ -58,7 +58,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       batch.delete(doc.reference);
     }
 
-    // 3. Reset Spent and Budget Counter for that month
     batch.update(
         FirebaseFirestore.instance.collection('users').doc(user!.uid).collection('budgets').doc(currentMonthKey),
         {
@@ -72,7 +71,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showResetConfirmation() {
-    // Dynamic text to show which month is being wiped
     String monthName = DateFormat('MMMM yyyy').format(BudgetLogic.selectedDate);
 
     showDialog(
@@ -81,7 +79,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text("Reset $monthName Data?"),
         content: Text(
-          "This will permanently clear your expenses and grocery list for $monthName from the cloud. Other months will not be affected.",
+          "This will permanently clear your expenses and grocery list for $monthName from the cloud.",
           style: const TextStyle(color: Colors.blueGrey),
         ),
         actions: [
@@ -112,7 +110,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _buildHeader(context),
             Expanded(
               child: StreamBuilder<DocumentSnapshot>(
-                // SYNCED: Fetching budget info for the selected bookmark
                 stream: FirebaseFirestore.instance.collection('users').doc(user?.uid).collection('budgets').doc(currentMonthKey).snapshots(),
                 builder: (context, snapshot) {
                   double currentLimit = 0.0;
@@ -133,7 +130,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               iconColor: const Color(0xFF22C55E),
                               bgColor: const Color(0xFFF0FDF4),
                               title: "Change Budget",
-                              // Displays correct limit for the selected month
                               subtitle: "Current limit: ₹${currentLimit.toStringAsFixed(2)}",
                               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const BudgetSetupScreen())),
                             ),
@@ -147,8 +143,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               onTap: _showResetConfirmation,
                             ),
                             const Divider(height: 1, indent: 60),
-                            // --- FIX #3: GLOBAL WARNING TOGGLE ---
-                            // Connected to the Logic Brain to stop all notifications
                             _buildToggleTile(
                               icon: Icons.notifications_active_rounded,
                               iconColor: Colors.red,
@@ -174,7 +168,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           iconColor: Colors.blue,
                           bgColor: const Color(0xFFEFF6FF),
                           title: "About App",
-                          subtitle: "Version 2.4.0 (Build 120) • Connected",
+                          subtitle: "Version 1.1.0 • Stable Build",
                           onTap: () {},
                         ),
                       ),
@@ -185,7 +179,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             onPressed: _handleLogout,
                             child: const Text("Log Out", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16)),
                           ),
-                          const Text("GROCERY PRO © 2026", style: TextStyle(color: Colors.grey, fontSize: 10, letterSpacing: 1.2)),
+                          const Text("TRACKMYCART © 2026", style: TextStyle(color: Colors.grey, fontSize: 10, letterSpacing: 1.2)),
                           const SizedBox(height: 24),
                         ],
                       ),
@@ -201,7 +195,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // --- UI HELPERS REMAIN UNCHANGED ---
   Widget _buildHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(top: 16, left: 8, right: 24, bottom: 16),
@@ -221,9 +214,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   BoxDecoration _cardDecoration() => BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFF1F5F9)));
-
   Widget _buildSectionHeader(String title) => Padding(padding: const EdgeInsets.only(left: 8, bottom: 8), child: Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1)));
-
   Widget _buildSettingTile({required IconData icon, required Color iconColor, required Color bgColor, required String title, required String subtitle, required VoidCallback onTap}) {
     return ListTile(
       onTap: onTap,
@@ -233,7 +224,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
     );
   }
-
   Widget _buildToggleTile({required IconData icon, required Color iconColor, required Color bgColor, required String title, required String subtitle, required bool value, required ValueChanged<bool> onChanged}) {
     return ListTile(
       leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12)), child: Icon(icon, color: iconColor, size: 22)),
@@ -242,7 +232,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       trailing: Switch(value: value, onChanged: onChanged, activeColor: const Color(0xFF22C55E)),
     );
   }
-
   Widget _buildBottomNav(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -258,7 +247,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
-
   Widget _navItem(IconData icon, String label, bool isActive, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,

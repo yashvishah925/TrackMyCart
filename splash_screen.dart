@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:grocery_store/welcome_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Added for logic
+import 'welcome_screen.dart';
+import 'dashboard_screen.dart'; // Ensure this is imported
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -13,24 +15,42 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Transition to Welcome Screen after 3 seconds
+    // Logic: Wait for 3 seconds to show branding, then check auth status
     Timer(const Duration(seconds: 3), () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const WelcomeScreen()),
-      );
+      _checkUserStatus();
     });
+  }
+
+  // --- NEW LOGIC: Persistent Login Check ---
+  void _checkUserStatus() {
+    User? user = FirebaseAuth.instance.currentUser;
+
+    if (mounted) {
+      if (user != null) {
+        // OLD USER: Go directly to Dashboard
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+        );
+      } else {
+        // NEW USER: Go to Welcome Screen (Login/Register)
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    // --- ALL UI CODE BELOW IS UNCHANGED ---
     const Color primaryGreen = Color(0xFF13EC5B);
 
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Background Decorative Elements
           Positioned(
             bottom: -50,
             left: -50,
@@ -43,16 +63,12 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
             ),
           ),
-
           Column(
             children: [
               const Spacer(flex: 3),
-
-              // Central Logo Section
               Center(
                 child: Column(
                   children: [
-                    // Shopping Cart Icon with Circle
                     Container(
                       width: 120,
                       height: 120,
@@ -84,7 +100,6 @@ class _SplashScreenState extends State<SplashScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    // App Name
                     RichText(
                       text: const TextSpan(
                         style: TextStyle(
@@ -115,15 +130,11 @@ class _SplashScreenState extends State<SplashScreen> {
                   ],
                 ),
               ),
-
               const Spacer(flex: 2),
-
-              // Bottom Branding Section
               Padding(
                 padding: const EdgeInsets.only(bottom: 60),
                 child: Column(
                   children: [
-                    // Simple Progress Bar
                     Container(
                       width: 48,
                       height: 4,
@@ -133,7 +144,7 @@ class _SplashScreenState extends State<SplashScreen> {
                       ),
                       child: FractionallySizedBox(
                         alignment: Alignment.centerLeft,
-                        widthFactor: 0.6, // Shows progress
+                        widthFactor: 0.6,
                         child: Container(
                           decoration: BoxDecoration(
                             color: primaryGreen,
