@@ -21,4 +21,8 @@ Backend: Firebase Firestore & Authentication
 Release: Optimized Android APK with custom branding
 
 How to Install
-Download the production build directly from the Releases section.
+https://github.com/yashvishah925/TrackMyCart/releases/download/v1.1/TrackMyCart.apk
+Steps:
+1. Download the APK  
+2. Enable "Install from Unknown Sources"  
+3. Install and start using the app
